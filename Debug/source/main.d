@@ -28,7 +28,14 @@ source/main.o source/main.d: ../source/main.c \
  D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/portable.h \
  D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/deprecated_definitions.h \
  D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\portable\GCC\ARM_CM4F/portmacro.h \
- D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/mpu_wrappers.h
+ D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/mpu_wrappers.h \
+ D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/task.h \
+ D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/list.h \
+ D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/semphr.h \
+ D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/queue.h \
+ D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/task.h \
+ ../source/BMI160.h ../source/freertos_I2C.h ../source/freertos_uart.h \
+ ../source/mahony.h
 
 D:\SEI2\Practica2\practica_2_gryroscope\board/board.h:
 
@@ -89,3 +96,21 @@ D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/
 D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\portable\GCC\ARM_CM4F/portmacro.h:
 
 D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/mpu_wrappers.h:
+
+D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/task.h:
+
+D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/list.h:
+
+D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/semphr.h:
+
+D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/queue.h:
+
+D:\SEI2\Practica2\practica_2_gryroscope\amazon-freertos\freertos_kernel\include/task.h:
+
+../source/BMI160.h:
+
+../source/freertos_I2C.h:
+
+../source/freertos_uart.h:
+
+../source/mahony.h:

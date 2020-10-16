@@ -29,7 +29,7 @@
  */
  
 /**
- * @file    practica_2_gryroscope.c
+ * @file    Tarea6_i2c.c
  * @brief   Application entry point.
  */
 #include <stdio.h>
@@ -39,6 +39,12 @@
 #include "clock_config.h"
 #include "MK66F18.h"
 #include "fsl_debug_console.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+#include "BMI160.h"
+#include "freertos_uart.h"
+#include "mahony.h"
 /* TODO: insert other include files here. */
 
 /* TODO: insert other definitions and declarations here. */
@@ -46,6 +52,16 @@
 /*
  * @brief   Application entry point.
  */
+
+
+#define BMI160_init_PRIORITY (configMAX_PRIORITIES - 1)
+#define BMI160_task_PRIORITY (configMAX_PRIORITIES - 2)
+
+
+
+void get_readings(void *pvParameters);
+void start_system(void *pvParameters);
+
 int main(void) {
 
   	/* Init board hardware. */
@@ -55,16 +71,59 @@ int main(void) {
   	/* Init FSL debug console. */
     BOARD_InitDebugConsole();
 
+
+
     PRINTF("Hello World\n");
 
-    /* Force the counter to be placed into memory. */
-    volatile static int i = 0 ;
-    /* Enter an infinite loop, just incrementing a counter. */
-    while(1) {
-        i++ ;
-        /* 'Dummy' NOP to allow source level single stepping of
-            tight while() loop */
-        __asm volatile ("nop");
-    }
+    if (xTaskCreate(start_system, "BMI160_init", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_init_PRIORITY, NULL) !=
+		pdPASS)
+	{
+		PRINTF("Failed to create task");
+		while (1);
+	}
+
+	vTaskStartScheduler();
+    for(;;){}
     return 0 ;
 }
+
+void get_readings(void *pvParameters)
+{
+	TickType_t xLastWakeTime;
+	TickType_t xfactor = pdMS_TO_TICKS(500);
+	// Initialise the xLastWakeTime variable with the current time.
+	xLastWakeTime = xTaskGetTickCount();
+	bmi160_raw_data_t gyr_data;
+	bmi160_raw_data_t acc_data;
+	MahonyAHRSEuler_t mahony_euler;
+	for( ;; )
+	{
+		gyr_data = get_giroscope();
+		acc_data = get_accelerometer();
+		//mahony
+		mahony_euler = MahonyAHRSupdateIMU(gyr_data.x, gyr_data.y, gyr_data.z,acc_data.x, acc_data.y, acc_data.z);
+		PRINTF("\rData from accelerometer:  X = %d  Y = %d  Z = %d \n", acc_data.x, acc_data.y, acc_data.z );
+		PRINTF("\rData from gyroscope:  X = %d  Y = %d  Z = %d \n", gyr_data.x, gyr_data.y, gyr_data.z );
+		PRINTF("\rRoll: %.2f	Pitch: %.2f	Yaw: %.2f\n",mahony_euler.roll, mahony_euler.pitch, mahony_euler.yaw);
+		vTaskDelayUntil( &xLastWakeTime, xfactor );
+	}
+}
+void start_system(void *pvParameters)
+{
+	uint8_t sucess = freertos_i2c_sucess;
+	sucess = BMI160_init();
+	if(freertos_i2c_sucess == sucess)
+	{
+		PRINTF("BMI160 configured\n");
+	}
+	if (xTaskCreate(get_readings, "BMI_160_read", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_task_PRIORITY, NULL) !=
+		pdPASS)
+	{
+		PRINTF("Failed to create task");
+		while (1);
+	}
+	vTaskSuspend(NULL);
+}
+
+
+

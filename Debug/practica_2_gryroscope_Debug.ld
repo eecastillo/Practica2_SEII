@@ -6,7 +6,7 @@
  * Generated linker script file for MK66FN2M0xxx18
  * Created from linkscript.ldt by FMCreateLinkLibraries
  * Using Freemarker v2.3.23
- * MCUXpresso IDE v11.1.0 [Build 3209] [2019-12-12] on Oct 16, 2020 12:21:33 PM
+ * MCUXpresso IDE v11.1.0 [Build 3209] [2019-12-12] on Oct 16, 2020 2:03:06 PM
  */
 
 INCLUDE "practica_2_gryroscope_Debug_library.ld"
