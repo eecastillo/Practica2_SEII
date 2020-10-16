@@ -1,0 +1,3 @@
+BMI160.c:11:22:BMI160_init	24	static
+BMI160.c:44:19:get_accelerometer	40	static
+BMI160.c:66:19:get_giroscope	40	static

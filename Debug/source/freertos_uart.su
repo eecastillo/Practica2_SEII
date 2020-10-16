@@ -1,0 +1,10 @@
+core_cm4.h:1807:22:__NVIC_SetPriority	16	static
+fsl_clock.h:725:20:CLOCK_EnableClock	24	static
+fsl_port.h:346:20:PORT_SetPinMux	24	static
+freertos_uart.c:33:22:freertos_uart_init	56	static
+freertos_uart.c:82:22:freertos_uart_send	32	static
+freertos_uart.c:106:22:freertos_uart_receive	32	static
+freertos_uart.c:131:20:freertos_uart_enable_port_clock	16	static
+freertos_uart.c:153:27:freertos_uart_get_port_base	24	static
+freertos_uart.c:179:27:freertos_uart_get_uart_base	24	static
+freertos_uart.c:196:13:fsl_uart_callback	32	static
