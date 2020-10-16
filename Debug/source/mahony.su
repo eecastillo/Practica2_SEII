@@ -1,0 +1,5 @@
+mahony.c:46:19:MahonyAHRSupdate	224	static
+mahony.c:153:19:MahonyAHRSupdateIMU	120	static
+mahony.c:227:7:invSqrt	32	static
+mahony.c:237:13:estimatedGravityDirection	24	static
+mahony.c:244:6:MahonyAHRGetEuler	32	static

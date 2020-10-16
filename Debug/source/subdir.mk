@@ -7,6 +7,7 @@ C_SRCS += \
 ../source/BMI160.c \
 ../source/freertos_I2C.c \
 ../source/freertos_uart.c \
+../source/mahony.c \
 ../source/main.c \
 ../source/semihost_hardfault.c 
 
@@ -14,6 +15,7 @@ OBJS += \
 ./source/BMI160.o \
 ./source/freertos_I2C.o \
 ./source/freertos_uart.o \
+./source/mahony.o \
 ./source/main.o \
 ./source/semihost_hardfault.o 
 
@@ -21,6 +23,7 @@ C_DEPS += \
 ./source/BMI160.d \
 ./source/freertos_I2C.d \
 ./source/freertos_uart.d \
+./source/mahony.d \
 ./source/main.d \
 ./source/semihost_hardfault.d 
 
