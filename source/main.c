@@ -61,6 +61,17 @@
 
 void get_readings(void *pvParameters);
 void start_system(void *pvParameters);
+void send_uart(void *pvParameters);
+
+typedef struct
+{
+	uint32_t header; //0xAAAAAAAA
+	float x;
+	float y;
+	float z;
+} comm_msg_t;
+comm_msg_t g_message;
+float times;
 
 int main(void) {
 
@@ -90,7 +101,7 @@ int main(void) {
 void get_readings(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
-	TickType_t xfactor = pdMS_TO_TICKS(500);
+	TickType_t xfactor = pdMS_TO_TICKS(10);
 	// Initialise the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 	bmi160_raw_data_t gyr_data;
@@ -98,18 +109,56 @@ void get_readings(void *pvParameters)
 	MahonyAHRSEuler_t mahony_euler;
 	for( ;; )
 	{
+		g_message.header = 0xAAAAAAAA;
 		gyr_data = get_giroscope();
 		acc_data = get_accelerometer();
-		//mahony
-		mahony_euler = MahonyAHRSupdateIMU(gyr_data.x, gyr_data.y, gyr_data.z,acc_data.x, acc_data.y, acc_data.z);
-		PRINTF("\rData from accelerometer:  X = %d  Y = %d  Z = %d \n", acc_data.x, acc_data.y, acc_data.z );
-		PRINTF("\rData from gyroscope:  X = %d  Y = %d  Z = %d \n", gyr_data.x, gyr_data.y, gyr_data.z );
-		PRINTF("\rRoll: %.2f	Pitch: %.2f	Yaw: %.2f\n",mahony_euler.roll, mahony_euler.pitch, mahony_euler.yaw);
+		// normalizar datos
+		// desviacion estandar
+		mahony_euler = MahonyAHRSupdateIMU((float)gyr_data.x,(float) gyr_data.y,(float) gyr_data.z,(float)acc_data.x,(float) acc_data.y,(float) acc_data.z);
+		//PRINTF("\rData from accelerometer:  X = %f  Y = %f  Z = %f \n", (float)acc_data.x, (float)acc_data.y, (float)acc_data.z );
+		//PRINTF("\rData from gyroscope:  X = %f  Y = %f  Z = %f \n", (float)gyr_data.x, (float)gyr_data.y, (float)gyr_data.z );
+		//PRINTF("\rRoll: %.2f	Pitch: %.2f	Yaw: %.2f\n",mahony_euler.roll, mahony_euler.pitch, mahony_euler.yaw);
+		g_message.x += mahony_euler.roll;
+		g_message.y += mahony_euler.pitch;
+		g_message.z += mahony_euler.yaw;
+		times++;
 		vTaskDelayUntil( &xLastWakeTime, xfactor );
 	}
 }
+void send_uart(void *pvParameters)
+{
+	TickType_t xLastWakeTime;
+	TickType_t xfactor = pdMS_TO_TICKS(20);
+	// Initialise the xLastWakeTime variable with the current time.
+	xLastWakeTime = xTaskGetTickCount();
+	for( ;; )
+	{
+		g_message.x /= times;
+		g_message.y /= times;
+		g_message.z /= times;
+		freertos_uart_send(freertos_uart0, (uint8_t *) &g_message, sizeof(g_message));
+		g_message.x = 0;
+		g_message.y = 0;
+		g_message.z = 0;
+		times = 0;
+		vTaskDelayUntil( &xLastWakeTime, xfactor );
+	}
+}
+
 void start_system(void *pvParameters)
 {
+	times = 0;
+	freertos_uart_config_t config;
+
+	config.baudrate = 115200;
+	config.rx_pin = 16;
+	config.tx_pin = 17;
+	config.pin_mux = kPORT_MuxAlt3;
+	config.uart_number = freertos_uart0;
+	config.port = freertos_uart_portB;
+	freertos_uart_init(config);
+
+
 	uint8_t sucess = freertos_i2c_sucess;
 	sucess = BMI160_init();
 	if(freertos_i2c_sucess == sucess)
@@ -118,6 +167,12 @@ void start_system(void *pvParameters)
 	}
 	if (xTaskCreate(get_readings, "BMI_160_read", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_task_PRIORITY, NULL) !=
 		pdPASS)
+	{
+		PRINTF("Failed to create task");
+		while (1);
+	}
+	if (xTaskCreate(send_uart, "UART_send", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_task_PRIORITY-1, NULL) !=
+			pdPASS)
 	{
 		PRINTF("Failed to create task");
 		while (1);
