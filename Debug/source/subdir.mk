@@ -4,7 +4,6 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../source/AHRS.c \
 ../source/BMI160.c \
 ../source/freertos_I2C.c \
 ../source/freertos_uart.c \
@@ -13,7 +12,6 @@ C_SRCS += \
 ../source/semihost_hardfault.c 
 
 OBJS += \
-./source/AHRS.o \
 ./source/BMI160.o \
 ./source/freertos_I2C.o \
 ./source/freertos_uart.o \
@@ -22,7 +20,6 @@ OBJS += \
 ./source/semihost_hardfault.o 
 
 C_DEPS += \
-./source/AHRS.d \
 ./source/BMI160.d \
 ./source/freertos_I2C.d \
 ./source/freertos_uart.d \

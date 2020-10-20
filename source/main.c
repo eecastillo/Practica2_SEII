@@ -1,37 +1,5 @@
-/*
- * Copyright 2016-2020 NXP
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * o Redistributions of source code must retain the above copyright notice, this list
- *   of conditions and the following disclaimer.
- *
- * o Redistributions in binary form must reproduce the above copyright notice, this
- *   list of conditions and the following disclaimer in the documentation and/or
- *   other materials provided with the distribution.
- *
- * o Neither the name of NXP Semiconductor, Inc. nor the names of its
- *   contributors may be used to endorse or promote products derived from this
- *   software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
- 
-/**
- * @file    Tarea6_i2c.c
- * @brief   Application entry point.
- */
+
+
 #include <stdio.h>
 #include "board.h"
 #include "peripherals.h"
@@ -45,18 +13,11 @@
 #include "BMI160.h"
 #include "freertos_uart.h"
 #include "mahony.h"
-/* TODO: insert other include files here. */
-
-/* TODO: insert other definitions and declarations here. */
-
-/*
- * @brief   Application entry point.
- */
 
 
 #define BMI160_init_PRIORITY (configMAX_PRIORITIES - 1)
 #define BMI160_task_PRIORITY (configMAX_PRIORITIES - 2)
-
+#define CALIBRATION_PRIORITY (configMAX_PRIORITIES - 2)
 
 
 void get_readings(void *pvParameters);
@@ -72,12 +33,17 @@ typedef struct
 	float z;
 } comm_msg_t;
 comm_msg_t g_message;
+
 bmi160_raw_data_t g_calibrate_gyr;
 bmi160_raw_data_t g_calibrate_acc;
 
 bmi160_raw_data_t g_filter_gyr;
 bmi160_raw_data_t g_filter_acc;
-float times;
+float g_times;
+
+#define N_MUESTRAS 100
+#define HEADER_HEX 0xAAAAAAAA
+#define ZERO 	   0
 
 int main(void) {
 
@@ -87,10 +53,6 @@ int main(void) {
     BOARD_InitBootPeripherals();
   	/* Init FSL debug console. */
     BOARD_InitDebugConsole();
-
-
-
-    PRINTF("Hello World\n");
 
     if (xTaskCreate(start_system, "BMI160_init", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_init_PRIORITY, NULL) !=
 		pdPASS)
@@ -113,13 +75,13 @@ void get_readings(void *pvParameters)
 	bmi160_raw_data_t gyr_data;
 	bmi160_raw_data_t acc_data;
 
-	g_filter_gyr.x = 0;
-	g_filter_gyr.y = 0;
-	g_filter_gyr.z = 0;
+	g_filter_gyr.x = ZERO;
+	g_filter_gyr.y = ZERO;
+	g_filter_gyr.z = ZERO;
 
-	g_filter_acc.x = 0;
-	g_filter_acc.y = 0;
-	g_filter_acc.z = 0;
+	g_filter_acc.x = ZERO;
+	g_filter_acc.y = ZERO;
+	g_filter_acc.z = ZERO;
 
 	for( ;; )
 	{
@@ -133,10 +95,8 @@ void get_readings(void *pvParameters)
 		acc_data.x -= g_calibrate_acc.x;
 		acc_data.y -= g_calibrate_acc.y;
 		acc_data.z -= g_calibrate_acc.z;
-		// desviacion estandar
-		//PRINTF("\rData from accelerometer:  X = %f  Y = %f  Z = %f \n", (float)acc_data.x, (float)acc_data.y, (float)acc_data.z );
-		//PRINTF("\rData from gyroscope:  X = %f  Y = %f  Z = %f \n", (float)gyr_data.x, (float)gyr_data.y, (float)gyr_data.z );
-		//PRINTF("\rRoll: %.2f	Pitch: %.2f	Yaw: %.2f\n",mahony_euler.roll, mahony_euler.pitch, mahony_euler.yaw);
+
+		// añadir los datos al promedio
 		g_filter_gyr.x += gyr_data.x;
 		g_filter_gyr.y += gyr_data.y;
 		g_filter_gyr.z += gyr_data.z;
@@ -145,7 +105,7 @@ void get_readings(void *pvParameters)
 		g_filter_acc.y += acc_data.y;
 		g_filter_acc.z += acc_data.z;
 
-		times++;
+		g_times++;
 		vTaskDelayUntil( &xLastWakeTime, xfactor );
 	}
 }
@@ -159,15 +119,15 @@ void send_uart(void *pvParameters)
 
 	for( ;; )
 	{
-		g_message.header = 0xAAAAAAAA;
+		g_message.header = HEADER_HEX;
 
-		g_filter_gyr.x /= times;
-		g_filter_gyr.y /= times;
-		g_filter_gyr.z /= times;
+		g_filter_gyr.x /= g_times;
+		g_filter_gyr.y /= g_times;
+		g_filter_gyr.z /= g_times;
 
-		g_filter_acc.x /= times;
-		g_filter_acc.y /= times;
-		g_filter_acc.z /= times;
+		g_filter_acc.x /= g_times;
+		g_filter_acc.y /= g_times;
+		g_filter_acc.z /= g_times;
 
 		mahony_euler = MahonyAHRSupdateIMU((float)g_filter_gyr.x,(float) g_filter_gyr.y,(float) g_filter_gyr.z,(float)g_filter_acc.x,(float) g_filter_acc.y,(float) g_filter_acc.z);
 		g_message.x = mahony_euler.roll;
@@ -175,14 +135,14 @@ void send_uart(void *pvParameters)
 		g_message.z = mahony_euler.yaw;
 
 		freertos_uart_send(freertos_uart0, (uint8_t *) &g_message, sizeof(g_message));
-		g_filter_gyr.x = 0;
-		g_filter_gyr.y = 0;
-		g_filter_gyr.z = 0;
+		g_filter_gyr.x = ZERO;
+		g_filter_gyr.y = ZERO;
+		g_filter_gyr.z = ZERO;
 
-		g_filter_acc.x = 0;
-		g_filter_acc.y = 0;
-		g_filter_acc.z = 0;
-		times = 0;
+		g_filter_acc.x = ZERO;
+		g_filter_acc.y = ZERO;
+		g_filter_acc.z = ZERO;
+		g_times = ZERO;
 
 		vTaskDelayUntil( &xLastWakeTime, xfactor );
 	}
@@ -193,18 +153,18 @@ void calibrate_sensor(void *pvParameters)
 	TickType_t xfactor = pdMS_TO_TICKS(5);
 	// Initialise the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
-	g_calibrate_gyr.x=0;
-	g_calibrate_gyr.y=0;
-	g_calibrate_gyr.z=0;
+	g_calibrate_gyr.x=ZERO;
+	g_calibrate_gyr.y=ZERO;
+	g_calibrate_gyr.z=ZERO;
 
-	g_calibrate_acc.x=0;
-	g_calibrate_acc.y=0;
-	g_calibrate_acc.z=0;
+	g_calibrate_acc.x=ZERO;
+	g_calibrate_acc.y=ZERO;
+	g_calibrate_acc.z=ZERO;
 
 	bmi160_raw_data_t acc_temp;
 	bmi160_raw_data_t gyr_temp;
 
-	for(uint8_t i = 0; i<100;i++)
+	for(uint8_t i = ZERO; i<N_MUESTRAS;i++)
 	{
 		gyr_temp = get_giroscope();
 		acc_temp = get_accelerometer();
@@ -219,13 +179,13 @@ void calibrate_sensor(void *pvParameters)
 
 		vTaskDelayUntil( &xLastWakeTime, xfactor );
 	}
-	g_calibrate_gyr.x /= 100.0;
-	g_calibrate_gyr.y /= 100.0;
-	g_calibrate_gyr.z /= 100.0;
+	g_calibrate_gyr.x /= (N_MUESTRAS + 0.0);
+	g_calibrate_gyr.y /= (N_MUESTRAS + 0.0);
+	g_calibrate_gyr.z /= (N_MUESTRAS + 0.0);
 
-	g_calibrate_acc.x /= 100.0;
-	g_calibrate_acc.y /= 100.0;
-	g_calibrate_acc.z /= 100.0;
+	g_calibrate_acc.x /= (N_MUESTRAS + 0.0);
+	g_calibrate_acc.y /= (N_MUESTRAS + 0.0);
+	g_calibrate_acc.z /= (N_MUESTRAS + 0.0);
 	if (xTaskCreate(get_readings, "BMI_160_read", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_task_PRIORITY, NULL) !=
 			pdPASS)
 	{
@@ -244,7 +204,7 @@ void calibrate_sensor(void *pvParameters)
 
 void start_system(void *pvParameters)
 {
-	times = 0;
+	g_times = ZERO;
 	freertos_uart_config_t config;
 
 	config.baudrate = 115200;
@@ -262,7 +222,7 @@ void start_system(void *pvParameters)
 	{
 		PRINTF("BMI160 configured\n");
 	}
-	if (xTaskCreate(calibrate_sensor, "calibrasss", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_task_PRIORITY, NULL) !=
+	if (xTaskCreate(calibrate_sensor, "calibration_task", configMINIMAL_STACK_SIZE + 100, NULL, CALIBRATION_PRIORITY, NULL) !=
 		pdPASS)
 	{
 		PRINTF("Failed to create task");
