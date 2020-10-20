@@ -56,7 +56,7 @@
 
 #define BMI160_init_PRIORITY (configMAX_PRIORITIES - 1)
 #define BMI160_task_PRIORITY (configMAX_PRIORITIES - 2)
-
+#define N_MUESTRA 100
 
 
 void get_readings(void *pvParameters);
@@ -71,12 +71,20 @@ typedef struct
 	float y;
 	float z;
 } comm_msg_t;
-comm_msg_t g_message;
-bmi160_raw_data_t g_calibrate_gyr;
-bmi160_raw_data_t g_calibrate_acc;
 
-bmi160_raw_data_t g_filter_gyr;
-bmi160_raw_data_t g_filter_acc;
+typedef struct
+{
+	float x;
+	float y;
+	float z;
+} floats_data_t;
+
+comm_msg_t g_message;
+floats_data_t g_calibrate_gyr;
+floats_data_t g_calibrate_acc;
+
+floats_data_t g_filter_gyr;
+floats_data_t g_filter_acc;
 float times;
 
 int main(void) {
@@ -121,29 +129,32 @@ void get_readings(void *pvParameters)
 	g_filter_acc.y = 0;
 	g_filter_acc.z = 0;
 
+
+	floats_data_t g_temp_gyr;
+	floats_data_t g_temp_acc;
 	for( ;; )
 	{
 		gyr_data = get_giroscope();
 		acc_data = get_accelerometer();
 		// normalizar datos
-		gyr_data.x -= g_calibrate_gyr.x;
-		gyr_data.y -= g_calibrate_gyr.y;
-		gyr_data.z -= g_calibrate_gyr.z;
+		g_temp_gyr.x = (float)gyr_data.x - g_calibrate_gyr.x;
+		g_temp_gyr.y = (float)gyr_data.y - g_calibrate_gyr.y;
+		g_temp_gyr.z = (float)gyr_data.z - g_calibrate_gyr.z;
 
-		acc_data.x -= g_calibrate_acc.x;
-		acc_data.y -= g_calibrate_acc.y;
-		acc_data.z -= g_calibrate_acc.z;
+		g_temp_acc.x = (float)acc_data.x; //- g_calibrate_acc.x;
+		g_temp_acc.y = (float)acc_data.y; //- g_calibrate_acc.y;
+		g_temp_acc.z = (float)acc_data.z; //- g_calibrate_acc.z;
 		// desviacion estandar
 		//PRINTF("\rData from accelerometer:  X = %f  Y = %f  Z = %f \n", (float)acc_data.x, (float)acc_data.y, (float)acc_data.z );
 		//PRINTF("\rData from gyroscope:  X = %f  Y = %f  Z = %f \n", (float)gyr_data.x, (float)gyr_data.y, (float)gyr_data.z );
 		//PRINTF("\rRoll: %.2f	Pitch: %.2f	Yaw: %.2f\n",mahony_euler.roll, mahony_euler.pitch, mahony_euler.yaw);
-		g_filter_gyr.x += gyr_data.x;
-		g_filter_gyr.y += gyr_data.y;
-		g_filter_gyr.z += gyr_data.z;
+		g_filter_gyr.x += g_temp_gyr.x;
+		g_filter_gyr.y += g_temp_gyr.y;
+		g_filter_gyr.z += g_temp_gyr.z;
 
-		g_filter_acc.x += acc_data.x;
-		g_filter_acc.y += acc_data.y;
-		g_filter_acc.z += acc_data.z;
+		g_filter_acc.x += g_temp_acc.x;
+		g_filter_acc.y += g_temp_acc.y;
+		g_filter_acc.z += g_temp_acc.z;
 
 		times++;
 		vTaskDelayUntil( &xLastWakeTime, xfactor );
@@ -152,7 +163,7 @@ void get_readings(void *pvParameters)
 void send_uart(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
-	TickType_t xfactor = pdMS_TO_TICKS(20);
+	TickType_t xfactor = pdMS_TO_TICKS(100);
 	// Initialise the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 	MahonyAHRSEuler_t mahony_euler;
@@ -204,28 +215,28 @@ void calibrate_sensor(void *pvParameters)
 	bmi160_raw_data_t acc_temp;
 	bmi160_raw_data_t gyr_temp;
 
-	for(uint8_t i = 0; i<100;i++)
+	for(uint16_t i = 0; i<N_MUESTRA;i++)
 	{
 		gyr_temp = get_giroscope();
 		acc_temp = get_accelerometer();
 
-		g_calibrate_gyr.x += gyr_temp.x;
-		g_calibrate_gyr.y += gyr_temp.y;
-		g_calibrate_gyr.z += gyr_temp.z;
+		g_calibrate_gyr.x += (float)gyr_temp.x;
+		g_calibrate_gyr.y += (float)gyr_temp.y;
+		g_calibrate_gyr.z += (float)gyr_temp.z;
 
-		g_calibrate_acc.x += acc_temp.x;
-		g_calibrate_acc.y += acc_temp.y;
-		g_calibrate_acc.z += acc_temp.z;
+		g_calibrate_acc.x += (float)acc_temp.x;
+		g_calibrate_acc.y += (float)acc_temp.y;
+		g_calibrate_acc.z += (float)acc_temp.z;
 
 		vTaskDelayUntil( &xLastWakeTime, xfactor );
 	}
-	g_calibrate_gyr.x /= 100.0;
-	g_calibrate_gyr.y /= 100.0;
-	g_calibrate_gyr.z /= 100.0;
+	g_calibrate_gyr.x /= (N_MUESTRA+0.0);
+	g_calibrate_gyr.y /= (N_MUESTRA+0.0);
+	g_calibrate_gyr.z /= (N_MUESTRA+0.0);
 
-	g_calibrate_acc.x /= 100.0;
-	g_calibrate_acc.y /= 100.0;
-	g_calibrate_acc.z /= 100.0;
+	g_calibrate_acc.x /= (N_MUESTRA+0.0);
+	g_calibrate_acc.y /= (N_MUESTRA+0.0);
+	g_calibrate_acc.z /= (N_MUESTRA+0.0);
 	if (xTaskCreate(get_readings, "BMI_160_read", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_task_PRIORITY, NULL) !=
 			pdPASS)
 	{
