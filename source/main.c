@@ -262,18 +262,13 @@ void start_system(void *pvParameters)
 	{
 		PRINTF("BMI160 configured\n");
 	}
-	if (xTaskCreate(get_readings, "BMI_160_read", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_task_PRIORITY, NULL) !=
+	if (xTaskCreate(calibrate_sensor, "calibrasss", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_task_PRIORITY, NULL) !=
 		pdPASS)
 	{
 		PRINTF("Failed to create task");
 		while (1);
 	}
-	if (xTaskCreate(send_uart, "UART_send", configMINIMAL_STACK_SIZE + 100, NULL, BMI160_task_PRIORITY-1, NULL) !=
-			pdPASS)
-	{
-		PRINTF("Failed to create task");
-		while (1);
-	}
+
 	vTaskSuspend(NULL);
 }
 
