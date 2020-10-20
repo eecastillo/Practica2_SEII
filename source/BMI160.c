@@ -38,6 +38,15 @@ freertos_i2c_flag_t  BMI160_init(void)
 		freertos_i2c_send(SLAVE_ADRESS, write, 2);
 		vTaskDelayUntil(&xLastWakeTime,xfactor);
 
+		write[0] = ACC_CONG_REG;
+		write[1] = ACC_400_HZ;
+		freertos_i2c_send(SLAVE_ADRESS, write, 2);
+		vTaskDelayUntil(&xLastWakeTime,xfactor);
+
+		write[0] = GYR_CONF_REG;
+		write[1] = GYR_400_HZ;
+		freertos_i2c_send(SLAVE_ADRESS, write, 2);
+		vTaskDelayUntil(&xLastWakeTime,xfactor);
 	}
 	return status;
 }

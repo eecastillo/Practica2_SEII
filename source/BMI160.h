@@ -36,6 +36,10 @@
 #define STATUS_REG 0x1B //bit 7 data ready accelerometer, bit 6 drdy gyroscope
 #define GYR_CONF_REG 0x42
 #define ACC_CONG_REG 0x40
+
+#define ACC_400_HZ   0X0A
+#define GYR_400_HZ   0X0A
+
 #define SLAVE_ADRESS 0x68
 // For PMU normal mode ACC 0x11, for PMU normal mode gyro 0x15
 #define CMD_REGISTER 0x7E
